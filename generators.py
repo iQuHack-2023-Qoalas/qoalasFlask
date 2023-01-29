@@ -17,8 +17,16 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit import Aer
+from qiskit.providers.fake_provider import FakeWashington, FakeMontreal, FakeNairobi
+from qiskit.providers import nairobi
+washington, montreal, fake_nairobi = FakeWashington(), FakeMontreal(), FakeNairobi()
 from numpy.random import choice
 ibm_sim_local = Aer.get_backend('qasm_simulator')
+IBMQ.save_account('001725cf4ad0eafc1d267990a28fafc71dc62783be9ba638874f69dd2139964f2fe7209c23732257dc5f69ab26421772e46aae5c6dea61afac980b1632912116', overwrite=True)
+IBMQ.load_account() # Load account from disk
+IBM_provider = IBMQ.get_provider(hub='ibm-q-community')
+nairobi = IBM_provider.backends('ibm_nairobi')[0]
+
 
 import random 
 from math import pi
@@ -334,17 +342,26 @@ def _choose_paulis(num_qubits, last_paulis):
         
 ################################################################################################
 from qiskit import execute
+resolution_backends = {
+    'classical_low' : fake_nairobi,
+    'low' : nairobi,
+    'medium' : montreal,
+    'high' : washington,
+}
 
 class DeepThermalRandom(QuantumCircuit):
     def __init__(
             self,
             num_qubits: Union[int, List[int]],
-            depth: bool = 25,
-            name: str = "PT(X)",
+            depth: int = 25,
+            name: str = "DT(X)",
             mapping: bool = True,
-            backend = ibm_sim_local,
+            resolution: str = 'low',
         ) -> None:
-        if backend.name() in ['fake_nairobi', 'ibm_nairobi']:
+
+        backend = resolution_backends[self.resolution]
+
+        if backend.name() in ['ibm_nairobi', 'fake_nairobi']:
             pattern1 = [[0, 1], [5, 6]]
             pattern2 = [[1, 2], [3, 5]]
             pattern3 = [[1, 3], [4, 5]]
