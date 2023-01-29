@@ -63,4 +63,4 @@ def send_covalent_request(number_of_seeds, distribution_type_index=1):
             for seed in result:
                 fo.write("%f\n"%seed)
 
-send_covalent_request(10)
+send_covalent_request(1)
