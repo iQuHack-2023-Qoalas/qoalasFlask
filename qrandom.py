@@ -4,10 +4,10 @@ to produce truly random numbers
 """
 from qiskit import IBMQ, Aer, transpile, execute
 from qiskit.tools.monitor import job_monitor
-from generators import NormalDistribution,UniformDistribution,LogNormalDistribution,PorterThomasDistribution,DeepThermalRandom
+from generators import NormalDistribution,UniformDistribution,PorterThomasDistribution,DeepThermalRandom
 import covalent as ct
 
-DISTRIBUTION_TYPES = ['normal', 'uniform', 'lognormal', 'porterthomas']
+DISTRIBUTION_TYPES = ['normal', 'uniform', 'porterthomas', 'deepthermo']
 
 @ct.electron
 def get_random_seed(distribution_type, backend, ibm_sim_local, SHOTS, NUM_QUBITS):
@@ -15,8 +15,6 @@ def get_random_seed(distribution_type, backend, ibm_sim_local, SHOTS, NUM_QUBITS
         circuit = NormalDistribution(num_qubits = NUM_QUBITS)
     elif distribution_type == 'uniform':
         circuit = UniformDistribution(num_qubits = NUM_QUBITS)
-    elif distribution_type == 'lognormal':
-        circuit = LogNormalDistribution(num_qubits = NUM_QUBITS)
     elif distribution_type == 'porterthomas':
         circuit = PorterThomasDistribution(num_qubits = NUM_QUBITS)
     elif distribution_type == 'deepthermo':
