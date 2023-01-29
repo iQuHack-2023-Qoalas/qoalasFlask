@@ -6,6 +6,7 @@ from qiskit import IBMQ, Aer, transpile, execute
 from qiskit.tools.monitor import job_monitor
 from generators import NormalDistribution,UniformDistribution,PorterThomasDistribution,DeepThermalRandom
 import covalent as ct
+import time
 
 DISTRIBUTION_TYPES = ['normal', 'uniform', 'porterthomas', 'deepthermo']
 
@@ -33,10 +34,19 @@ def get_random_seed(distribution_type, backend, ibm_sim_local, SHOTS, NUM_QUBITS
             rnd_number += int(k, 2) / (2**(NUM_QUBITS*num_shot))
             num_shot += 1
             counts[k] -= 1
+
     return rnd_number
 
 @ct.lattice
-def workflow(number_of_seeds, distribution_type_index):
+def workflow(number_of_seeds, distribution_type, backend, ibm_sim_local, SHOTS, NUM_QUBITS):
+
+    random_seeds = []
+    for _ in range(number_of_seeds):
+        random_seeds.append(get_random_seed(distribution_type, backend, ibm_sim_local, SHOTS, NUM_QUBITS))
+
+    return random_seeds
+
+def send_covalent_request(number_of_seeds, distribution_type_index=1):
     IBMQ.save_account('001725cf4ad0eafc1d267990a28fafc71dc62783be9ba638874f69dd2139964f2fe7209c23732257dc5f69ab26421772e46aae5c6dea61afac980b1632912116', overwrite=True)
     IBMQ.load_account() # Load account from disk
     IBM_provider = IBMQ.get_provider(hub='ibm-q-community')
@@ -47,23 +57,15 @@ def workflow(number_of_seeds, distribution_type_index):
     SHOTS = 10
     NUM_QUBITS = 7
     distribution_type = DISTRIBUTION_TYPES[distribution_type_index]
-    numb_of_random = 10
     backend = [ibm_nairobi, ibm_oslo, ibm_sim_local][2]
-    filename = 'output_'+distribution_type+'.txt'
-    random_seeds = []
-    random_seeds = [get_random_seed(distribution_type, backend, ibm_sim_local, SHOTS, NUM_QUBITS) for _ in range(number_of_seeds)]
-    return random_seeds
+    dispatch_id = ct.dispatch(workflow)(number_of_seeds, distribution_type, backend, ibm_sim_local, SHOTS, NUM_QUBITS)
 
-
-def send_covalent_request(number_of_seeds, distribution_type_index=1):
-    dispatch_id = ct.dispatch(workflow)(number_of_seeds, distribution_type_index)
-    result = ct.get_result(dispatch_id)
+    time.sleep(5)
     # filename = 'output_'+DISTRIBUTION_TYPES[distribution_type_index]+'.yml'
     # with open(filename, "a") as fo:
     #     for seed in result:
     #         fo.write("%f\n"%seed)
 
-    for i in result:
-        print(i)
+    print(ct.get_result(dispatch_id))
 
-send_covalent_request(1)
+send_covalent_request(3)
