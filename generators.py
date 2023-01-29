@@ -18,7 +18,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit import Aer
 from qiskit.providers.fake_provider import FakeWashington, FakeMontreal, FakeNairobi
-from qiskit.providers import nairobi
 washington, montreal, fake_nairobi = FakeWashington(), FakeMontreal(), FakeNairobi()
 from numpy.random import choice
 ibm_sim_local = Aer.get_backend('qasm_simulator')
