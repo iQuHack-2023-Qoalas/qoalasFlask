@@ -58,9 +58,12 @@ def workflow(number_of_seeds, distribution_type_index):
 def send_covalent_request(number_of_seeds, distribution_type_index=1):
     dispatch_id = ct.dispatch(workflow)(number_of_seeds, distribution_type_index)
     result = ct.get_result(dispatch_id)
-    filename = 'output_'+DISTRIBUTION_TYPES[distribution_type_index]+'.txt'
-    with open(filename, "a") as fo:
-            for seed in result:
-                fo.write("%f\n"%seed)
+    # filename = 'output_'+DISTRIBUTION_TYPES[distribution_type_index]+'.yml'
+    # with open(filename, "a") as fo:
+    #     for seed in result:
+    #         fo.write("%f\n"%seed)
+
+    for i in result:
+        print(i)
 
 send_covalent_request(1)

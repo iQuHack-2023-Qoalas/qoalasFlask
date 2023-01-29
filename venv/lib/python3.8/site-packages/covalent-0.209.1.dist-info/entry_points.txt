@@ -1,0 +1,2 @@
+[console_scripts]
+covalent = covalent_dispatcher._cli.cli:cli
