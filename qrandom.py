@@ -26,7 +26,6 @@ def get_random_seed(distribution_type, backend, ibm_sim_local, SHOTS, NUM_QUBITS
     job = execute(circuit, ibm_sim_local, shots=SHOTS)
     job_monitor(job)
     counts = job.result().get_counts()
-
     rnd_number = 0
     num_shot = 1
     for k in counts.keys():
