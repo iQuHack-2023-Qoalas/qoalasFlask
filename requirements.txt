@@ -9,4 +9,4 @@ zipp==3.12.0
 qiskit==0.39.4
 gevent==22.10.2
 greenlet==2.0.1; platform_python_implementation == 'CPython'
-gunicorn==20.1.0
+gunicorn==20.0.2
