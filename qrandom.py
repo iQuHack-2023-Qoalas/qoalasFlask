@@ -2,10 +2,9 @@
 This module utilizes quantum computers 
 to produce truly random numbers
 """
-from qiskit import IBMQ, transpile, execute
-from qiskit import IBMQ, Aer
+from qiskit import IBMQ, Aer, transpile, execute
 from qiskit.tools.monitor import job_monitor
-from generators import NormalDistribution,UniformDistribution,LogNormalDistribution,PorterThomasDistribution
+from generators import NormalDistribution,UniformDistribution,LogNormalDistribution,PorterThomasDistribution,DeepThermalRandom
 import covalent as ct
 
 DISTRIBUTION_TYPES = ['normal', 'uniform', 'lognormal', 'porterthomas']
@@ -20,6 +19,9 @@ def get_random_seed(distribution_type, backend, ibm_sim_local, SHOTS, NUM_QUBITS
         circuit = LogNormalDistribution(num_qubits = NUM_QUBITS)
     elif distribution_type == 'porterthomas':
         circuit = PorterThomasDistribution(num_qubits = NUM_QUBITS)
+    elif distribution_type == 'deepthermo':
+        answer = DeepThermalRandom(num_qubits = NUM_QUBITS, backend=backend)
+        return int(answer, 2)
 
     circuit.measure_all()
     circuit = transpile(circuit, backend=backend)

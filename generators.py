@@ -16,6 +16,9 @@ from typing import Tuple, Union, List, Optional
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
+from qiskit import Aer
+from numpy.random import choice
+ibm_sim_local = Aer.get_backend('qasm_simulator')
 
 import random 
 from math import pi
@@ -489,3 +492,155 @@ def _choose_paulis(num_qubits, last_paulis):
     return paulis
         
 ################################################################################################
+from qiskit import execute
+
+class DeepThermalRandom(QuantumCircuit):
+    def __init__(
+            self,
+            num_qubits: Union[int, List[int]],
+            depth: bool = 25,
+            name: str = "PT(X)",
+            mapping: bool = True,
+            backend = ibm_sim_local,
+        ) -> None:
+        if backend.name() in ['fake_nairobi', 'ibm_nairobi']:
+            pattern1 = [[0, 1], [5, 6]]
+            pattern2 = [[1, 2], [3, 5]]
+            pattern3 = [[1, 3], [4, 5]]
+                
+            circuit = QuantumCircuit(7)
+            gate = entangling_gate().to_gate()
+            
+            for layer in range(depth):
+                for pair in pattern1:
+                    circuit.append(gate, pair)
+                for pair in pattern2:
+                    circuit.append(gate, pair)
+                for pair in pattern3:
+                    circuit.append(gate, pair)
+
+            circuit.measure_all()
+            shots = 2**5
+            initial_layout = [0, 1, 2, 3, 4, 5, 6]
+            
+            result = execute(circuit, backend, shots=shots, initial_layout=initial_layout).result()
+            results_dict = result.get_counts()
+            conditional_dict = {i: 0 for i in generate_binary_strings(3)}
+
+            for result in results_dict:
+                if result[3:] == '0' * 4:
+                    conditional_dict[result[:3]] += results_dict[result]
+
+            answer = choice(list(conditional_dict.keys()), p = np.array(list(conditional_dict.values())) / sum(
+            list(conditional_dict.values())))
+            return answer
+        else: #generic mid-size IBM Quantum Device
+            config = backend.configuration()
+            N = config.num_qubits
+            cmap = config.coupling_map
+            graph = {j: {k for k in find_neighbours(cmap, j)} for j in range(N)} 
+            try:
+                use_this_cycle = best_cycle(backend, graph, num_qubits)
+            except:
+                raise Exception('No cycles of this length found on your backend')
+
+            gate = entangling_gate().to_gate()
+
+            circuit = QuantumCircuit(num_qubits)
+            for i in range(depth):
+                for j in range(num_qubits):
+                    if j%2 == 0:
+                        try:
+                            circuit.append(gate, [j, j+1])
+                        except:
+                            None
+                if num_qubits%2 == 1:
+                    circuit.append(gate, [num_qubits-1, 0])
+                for j in range(num_qubits):
+                    if j%2 == 1:
+                        try:
+                            circuit.append(gate, [j, j+1])
+                        except:
+                            None
+                if num_qubits%2 == 0:
+                    circuit.append(gate, [num_qubits-1, 0])
+            shots = 2**(int(num_qubits/2) + 1)     
+            A_size = int(num_qubits/2)
+            B_size = num_qubits - int(num_qubits/2)
+            circuit.measure_all()            
+            initial_layout = use_this_cycle
+            result = execute(circuit, backend, shots=shots, initial_layout=initial_layout).result()
+            results_dict = result.get_counts()
+            conditional_dict = {i: 0 for i in generate_binary_strings(A_size)}
+
+            for result in results_dict:
+                if result[A_size:] == '0' * B_size:
+                    conditional_dict[result[:A_size]] += results_dict[result]
+
+            answer = choice(list(conditional_dict.keys()), p = np.array(list(conditional_dict.values())) / sum(
+            list(conditional_dict.values())))
+        
+        return int(answer, 2)
+
+def find_neighbours(coupling_map, j):
+    neighbours = []
+    for bond in coupling_map:
+        if bond[0] == j:
+            neighbours.append(bond[1])
+    return neighbours
+
+def find_cycles_recursive(graph, L, cycle):
+    successors = graph[cycle[-1]]
+    if len(cycle) == L:
+        if cycle[0] in successors:
+            yield cycle
+    elif len(cycle) < L:
+        for v in successors:
+            if v in cycle:
+                continue
+            yield from find_cycles_recursive(graph, L, cycle + [v])
+
+def find_cycles(graph, L):
+    for v in graph:
+        yield from find_cycles_recursive(graph, L, [v])
+        
+def unique_cycles(graph, L):
+    list_cycles = list(find_cycles(graph, L))
+    if list_cycles == []:
+        return []
+    unique_cycles = [list_cycles[0]]
+    for cycle in list_cycles:
+        if set(cycle) not in [set(cycle) for cycle in unique_cycles]:
+            unique_cycles.append(cycle)
+    return unique_cycles
+
+def best_cycle(backend, graph, L):
+    cycles_to_look_at = [list(cycle) for cycle in unique_cycles(graph, L)]
+    errors = []
+    for cycle in cycles_to_look_at:
+        total_error_cycle = 1
+        qpairs = [[cycle[i], cycle[i+1]] for i in range(L-1)]
+        for pair in qpairs:
+            total_error_cycle *= backend.properties().gate_error('cx', pair)
+        errors.append(total_error_cycle)
+    min_error = min(errors)
+    return cycles_to_look_at[errors.index(min_error)]
+
+def entangling_gate():  
+    circ = QuantumCircuit(2)
+    circ.rzz(np.pi/2, 0, 1)
+    circ.rx(np.pi/2, 0)
+    circ.rx(np.pi/2, 1)
+    circ.rzz(np.pi/2, 0, 1)
+    return circ
+
+def generate_binary_strings(bit_count):
+    binary_strings = []
+    def genbin(n, bs=''):
+        if len(bs) == n:
+            binary_strings.append(bs)
+        else:
+            genbin(n, bs + '0')
+            genbin(n, bs + '1')
+    genbin(bit_count)
+    return binary_strings
