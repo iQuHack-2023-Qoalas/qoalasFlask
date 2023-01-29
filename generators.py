@@ -284,7 +284,7 @@ class PorterThomasDistribution(QuantumCircuit):
     def __init__(
         self,
         num_qubits: Union[int, List[int]],
-        depth: bool = 25,
+        depth: int = 25,
         name: str = "PT(X)",
         mapping: bool = True,
     ) -> None:
